@@ -7,43 +7,24 @@ from langchain.tools import tool
 from langchain_tavily import TavilySearch
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
-from langchain_classic import hub
 from langchain.agents import create_agent
 
 os.environ["SSL_CERT_FILE"] = certifi.where()
 env_file = Path(__file__).resolve().parents[3] / ".env"
-load_dotenv(dotenv_path=env_file)
+load_dotenv(dotenv_path=env_file, override=False)
 
-if not os.getenv("GROQ_API_KEY"):
-    raise ValueError("GROQ_API_KEY is missing from the .env file.")
+for key, value in {
+    "GROQ_API_MODEL": "openai/gpt-oss-20b",
+    "OPENAI_API_MODEL": "gpt-4o",
+    "LANGSMITH_PROJECT": "groq-chat-project",
+    "LANGSMITH_TRACING": "true",
+}.items():
+    os.environ.setdefault(key, value)
 
-if not os.getenv("GROQ_API_MODEL"):
-    os.environ["GROQ_API_MODEL"] = "openai/gpt-oss-20b"
 
-if not os.getenv("OPENAI_API_KEY"):
-    raise ValueError("OPENAI_API_KEY is missing from the .env file.")
-
-if not os.getenv("OPENAI_API_MODEL"):
-    os.environ["OPENAI_API_MODEL"] = "gpt-4o"
-
-if not os.getenv("LANGSMITH_API_KEY"):
-    raise ValueError("LANGSMITH_API_KEY is missing from the .env file.")
-
-if not os.getenv("LANGSMITH_PROJECT"):
-    os.environ["LANGSMITH_PROJECT"] = "groq-chat-project"
-
-if not os.getenv("LANGSMITH_TRACING"):
-    os.environ["LANGSMITH_TRACING"] = "true"
-
-if not os.getenv("TAVILY_API_KEY"):
-    raise ValueError("TAVILY_API_KEY is missing from the .env file.")
-
-if not os.getenv("WEATHERSTACK_API_KEY"):
-    raise ValueError("WEATHERSTACK_API_KEY is missing from the .env file.")
-
-def get_env_variable(var_name:str) -> str:
+def get_env_variable(var_name: str) -> str:
     value = os.getenv(var_name)
-    if value is None:
+    if value is None or not value.strip():
         raise ValueError(f"{var_name} is missing from the .env file.")
     return value
 
@@ -58,11 +39,13 @@ def get_groq_llm() -> ChatGroq:
 
 def get_openai_llm() -> ChatOpenAI:
     api_key = get_env_variable("OPENAI_API_KEY")
+    model_name = os.getenv("OPENAI_API_MODEL", "gpt-4o")
     return ChatOpenAI(
-        model_name="gpt-4o",
+        model_name=model_name,
         openai_api_key=api_key,
         temperature=0,
     )
+
 
 def get_tavily_search_tool() -> TavilySearch:
     return TavilySearch(
@@ -86,19 +69,21 @@ def get_weatherstack_tool(city: str) -> str:
         f"Humidity: {res['current']['humidity']}%\n"
         f"WindSpeed: {res['current']['wind_speed']} km/h\n"
     )
-tools = [get_weatherstack_tool, get_tavily_search_tool()]
-agent = create_agent(
-    model=get_groq_llm(),
-    tools=tools,
-    system_prompt=(
-        "You are a helpful assistant. "
-        "You have a WeatherStack tool to search for weather information. "
-        "You have a TavilySearch tool to search for information on the web."
-    ),
-)
+def get_agent():
+    tools = [get_weatherstack_tool, get_tavily_search_tool()]
+    return create_agent(
+        model=get_groq_llm(),
+        tools=tools,
+        system_prompt=(
+            "You are a helpful assistant. "
+            "You have a WeatherStack tool to search for weather information. "
+            "You have a TavilySearch tool to search for information on the web."
+        ),
+    )
+
 
 def agent_invoke(prompt: str) -> str:
-    response = agent.invoke(
+    response = get_agent().invoke(
         {
             "messages": [
                 {"role": "user", "content": prompt}
