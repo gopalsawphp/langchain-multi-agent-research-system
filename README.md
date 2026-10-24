@@ -1,102 +1,92 @@
 # LangChain Multi-Agent Research System
 
-A Python application built with LangChain and managed with [uv](https://docs.astral.sh/uv/). It includes:
+A Python project managed with [uv](https://docs.astral.sh/uv/) that includes a single-agent chat app and a multi-agent web research app.
 
-- A multi-agent research pipeline that searches the web, scrapes sources, writes a report, and reviews it.
-- A Streamlit research interface.
-- A separate Streamlit chat interface with web search and weather tools.
-
-## Repository
-
-GitHub: [gopalsawphp/langchain-multi-agent-research-system](https://github.com/gopalsawphp/langchain-multi-agent-research-system)
-
-Clone URL:
-
-```text
-https://github.com/gopalsawphp/langchain-multi-agent-research-system.git
-```
-
-## Requirements
-
-- Python **3.13** (the project requires `>=3.13,<3.14`).
-- uv.
-- API keys for the services you plan to use:
-  - **Groq** and **Tavily** are needed for the research pipeline.
-  - **Groq**, **Tavily**, and **WeatherStack** are needed for all capabilities in the chat app. WeatherStack is only called for weather requests.
-  - LangSmith tracing and OpenAI are optional; the app uses Groq as its configured model.
+GitHub repository: [gopalsawphp/langchain-multi-agent-research-system](https://github.com/gopalsawphp/langchain-multi-agent-research-system)
 
 ## Setup
 
+Follow these steps from a terminal. The commands below use Windows PowerShell unless marked otherwise.
+
 ### 1. Install Python
 
-Install Python 3.13 from [python.org](https://www.python.org/downloads/) and verify it is available in your terminal:
+Install **Python 3.13** from [python.org](https://www.python.org/downloads/). This project requires Python `>=3.13,<3.14`.
+
+Check that Python is available:
 
 ```powershell
 python --version
 ```
 
-The output should report Python 3.13.x. If `python` is not recognized on Windows, enable Python on your `PATH` or use the Python launcher (`py -3.13`).
+The version should be Python 3.13.x. If `python` is not recognized on Windows, enable it on your `PATH` or use the Python launcher, for example `py -3.13`.
 
-### 2. Install uv
+### 2. Install Git and clone the project
 
-In PowerShell, run the official Windows installer:
-
-```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
-
-Open a new terminal if needed, then check the installation:
+Install Git from [git-scm.com](https://git-scm.com/downloads), then open a new terminal and verify it:
 
 ```powershell
-uv --version
+git --version
 ```
 
-For macOS/Linux, see the [official uv installation guide](https://docs.astral.sh/uv/getting-started/installation/).
-
-### 3. Clone the repository
+Clone the repository and move into its folder:
 
 ```powershell
 git clone https://github.com/gopalsawphp/langchain-multi-agent-research-system.git
 cd langchain-multi-agent-research-system
 ```
 
-### 4. Sync the project dependencies
+### 3. Install uv
 
-This repository is already configured as a uv project: `pyproject.toml` defines its dependencies and Python version, and `uv.lock` locks dependency versions. You do **not** need to run `uv init` after cloning; `uv init` is for creating a new project and is not needed to set up this one.
+Install uv with pip:
 
-Install the project and its dependencies:
+```powershell
+python -m pip install uv
+```
+
+Check the installation:
+
+```powershell
+uv --version
+```
+
+### 4. Initialize a project (only if needed)
+
+This repository is already a uv project: it contains `pyproject.toml` and `uv.lock`. **When setting up this cloned repository, do not run `uv init`.**
+
+Use `uv init project_name` only when starting a separate, new project:
+
+```powershell
+uv init project_name
+cd project_name
+```
+
+### 5. Sync the project dependencies
+
+From the cloned repository root (the folder containing `pyproject.toml`), run:
 
 ```powershell
 uv sync
 ```
 
-`uv sync` creates the project `.venv` environment if it does not exist and installs the locked dependencies.
+uv creates the project's `.venv` virtual environment if needed and installs the dependencies from the project configuration and lockfile.
 
-### 5. Activate the virtual environment
+### 6. Install packages and configure dependencies
 
-PowerShell:
+The recommended installation method is `uv sync` from Step 5. Dependencies are declared in `pyproject.toml`, and `uv.lock` records their resolved versions so uv can reproduce the environment. When dependencies change, update the project configuration and run `uv lock` followed by `uv sync`.
+
+For compatibility with pip, this repository also provides a pinned `requirements.txt`. To install packages with pip instead, create and activate a virtual environment, then run:
 
 ```powershell
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 ```
 
-If PowerShell blocks activation, you can skip activation and prefix the following commands with `uv run`, for example `uv run streamlit run multi_agent.py`.
+On macOS/Linux, activate that environment with `source .venv/bin/activate`. Choose either uv or pip to install dependencies; using `uv sync` is recommended for this project.
 
-Command Prompt:
+#### Configure API keys
 
-```bat
-.venv\Scripts\activate.bat
-```
-
-macOS/Linux:
-
-```bash
-source .venv/bin/activate
-```
-
-### 6. Configure API keys
-
-Create a `.env` file in the repository root (the same folder as `pyproject.toml`) and add your own provider keys:
+Create a `.env` file in the repository root (next to `pyproject.toml`) and add your own keys:
 
 ```dotenv
 GROQ_API_KEY=your_groq_api_key
@@ -109,66 +99,39 @@ LANGSMITH_API_KEY=your_langsmith_api_key
 LANGSMITH_PROJECT=groq-chat-project
 ```
 
-The multi-agent research pipeline needs `GROQ_API_KEY` and `TAVILY_API_KEY`. The single-agent chat uses `WEATHERSTACK_API_KEY` when you request weather. Keep `.env` private; do not commit API keys. `.env` is excluded by `.gitignore`.
+The Multi-Agent Research System requires Groq and Tavily keys. The Single-Agent app also requires those keys for normal operation; WeatherStack is needed for weather requests. LangSmith tracing is optional. Keep `.env` private and do not commit API keys.
 
-## Run the project
+## Run the applications
 
-Run commands from the repository root with the virtual environment activated. Alternatively, use `uv run <command>` without activating it.
+Run these commands from the repository root. `uv run` uses the project's environment, so you do not need to activate `.venv` first.
 
-### Option 1: Run a pipeline or chat request with Python
-
-There is no standalone command-line prompt loop. Call the Python functions directly; these examples execute one request and print the response.
-
-Run a research query:
+### 7. Run the Single-Agent application
 
 ```powershell
-python -c "from src.app.multi_agent_research_system.pipelines.pipeline import run_research_pipeline; result = run_research_pipeline('How are AI agents changing software engineering?'); print(result['writer_response'])"
+uv run streamlit run single_agent.py
 ```
 
-Run a single-agent chat request:
-
-```powershell
-python -c "from src.app.single_agent_system.single_agent import agent_invoke; print(agent_invoke('What is LangChain?'))"
-```
-
-You can also use `uv run python -c "..."` in place of `python -c "..."`.
-
-### Option 2: Run a Streamlit app
-
-Start the multi-agent research interface:
-
-```powershell
-streamlit run multi_agent.py
-```
-
-Or start the single-agent chat interface:
-
-```powershell
-streamlit run single_agent.py
-```
-
-Streamlit prints a local URL (usually `http://localhost:8501`) to open in your browser. Stop the server with `Ctrl+C`.
-
-If you did not activate the environment, use:
+### 8. Run the Multi-Agent Research System
 
 ```powershell
 uv run streamlit run multi_agent.py
 ```
 
-Replace `multi_agent.py` with `single_agent.py` to launch the chat interface instead.
+Streamlit prints the local address to open in your browser (usually `http://localhost:8501`). Stop the running app with `Ctrl+C`. To run both apps at once, use separate terminals; Streamlit will choose another port for the second app.
 
-## Project layout
+## Project structure
 
 ```text
 .
-├── multi_agent.py                 # Multi-agent research UI
-├── single_agent.py                # Single-agent chat UI
-├── src/app/
-│   ├── multi_agent_research_system/
-│   │   ├── agents/                # Search, scraping, writing, and critic agents
-│   │   ├── pipelines/             # Research pipeline orchestration
-│   │   └── tools/                 # Web search and URL scraping tools
-│   └── single_agent_system/       # Chat agent and tools
-├── pyproject.toml                 # Project metadata and dependencies
-└── uv.lock                        # Locked dependency versions
+├── single_agent.py                # Single-Agent chat interface
+├── multi_agent.py                 # Multi-Agent research interface
+├── pyproject.toml                 # Project metadata and dependency declarations
+├── uv.lock                        # Locked dependency versions for uv
+├── requirements.txt               # Pinned requirements for pip users
+└── src/app/
+    ├── single_agent_system/       # Chat agent and tools
+    └── multi_agent_research_system/
+        ├── agents/                # Search, scraper, writer, and critic agents
+        ├── pipelines/             # Research pipeline orchestration
+        └── tools/                 # Web search and URL scraping tools
 ```
